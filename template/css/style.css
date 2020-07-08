@@ -302,8 +302,8 @@ pre code.sample-request-response-json {
 .sidenav > li.active > a {
     position: relative;
     z-index: 2;
-    background-color: #0088cc;
-    color: #ffffff;
+    /*background-color: #0088cc;*/
+    /*color: #ffffff;*/
 }
 
 .sidenav > li.has-modifications a {

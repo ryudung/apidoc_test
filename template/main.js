@@ -320,27 +320,36 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
     if (apiProject.footer)
         $('#footer').append( templateFooter(apiProject.footer) );
 
+    // Bootstrap Scrollspy
+    $(this).scrollspy({ target: '#scrollingNav' });
+
     //
     // Render Sections and Articles
     //
-    var articleVersions = {};
-    var content = '';
-    apiGroups.forEach(function(groupEntry) {
+    function renderSectionsAndArticles(data){
+        var articleVersions = {};
+        var content = '';
+        var first = data[0];
+
         var articles = [];
         var oldName = '';
         var fields = {};
-        var title = groupEntry;
+        var title = first.group;
         var description = '';
-        articleVersions[groupEntry] = {};
+        articleVersions[first.group] = {};
+
+        var sortedData = data.sort(function(a, b) {
+            return a.title < b.title ? -1 : a.title > b.title ? 1 : 0;
+        });
 
         // render all articles of a group
-        api.forEach(function(entry) {
-            if(groupEntry === entry.group) {
+        sortedData.forEach(function (entry) {
+            if (first.group === entry.group) {
                 if (oldName !== entry.name) {
                     // determine versions
-                    api.forEach(function(versionEntry) {
-                        if (groupEntry === versionEntry.group && entry.name === versionEntry.name) {
-                            if ( ! articleVersions[entry.group].hasOwnProperty(entry.name) ) {
+                    sortedData.forEach(function (versionEntry) {
+                        if (first.group === versionEntry.group && entry.name === versionEntry.name) {
+                            if (!articleVersions[entry.group].hasOwnProperty(entry.name)) {
                                 articleVersions[entry.group][entry.name] = [];
                             }
                             articleVersions[entry.group][entry.name].push(versionEntry.version);
@@ -386,26 +395,34 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
 
         // render Section with Articles
         var fields = {
-            group: groupEntry,
+            group: first.group,
             title: title,
             description: description,
             articles: articles,
             aloneDisplay: apiProject.template.aloneDisplay
         };
         content += templateSections(fields);
-    });
-    $('#sections').append( content );
 
-    // Bootstrap Scrollspy
-    $(this).scrollspy({ target: '#scrollingNav' });
+        $('#sections').empty();
+        $('#sections').append(content);
+
+    }
 
     // Content-Scroll on Navigation click.
     $('.sidenav').find('a').on('click', function(e) {
         e.preventDefault();
-        var id = $(this).attr('href');
-        if ($(id).length > 0)
-            $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 400);
-        window.location.hash = $(this).attr('href');
+        var $currentTarget = $(e.currentTarget);
+        var groupName = $currentTarget.parent().data('group');
+
+        $.getJSON(groupName + '/'+ 'api_data.json', function (result) {
+
+            renderSectionsAndArticles(result);
+
+            var id = $currentTarget.attr('href');
+            if ($(id).length > 0)
+                $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 400);
+        });
+
     });
 
     /**
@@ -550,7 +567,7 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
 
         // hide all
         $('article').addClass('hide');
-        $('#sidenav li:not(.nav-fixed)').addClass('hide');
+        // $('#sidenav li:not(.nav-fixed)').addClass('hide');
 
         // show 1st equal or lower Version of each entry
         $('article[data-version]').each(function(index) {
