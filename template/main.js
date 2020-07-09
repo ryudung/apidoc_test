@@ -118,6 +118,8 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
         });
     });
 
+    var currentArticleByGroupAndName = {};
+
     //
     // sort api within a group by title ASC and custom order
     //
@@ -323,6 +325,8 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
     // Bootstrap Scrollspy
     $(this).scrollspy({ target: '#scrollingNav' });
 
+    var currentArticleVersions;
+
     //
     // Render Sections and Articles
     //
@@ -406,6 +410,27 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
         $('#sections').empty();
         $('#sections').append(content);
 
+        prettyPrint();
+
+        currentArticleVersions = articleVersions;
+
+
+        //
+        // Data transform
+        //
+        // grouped by group
+        var apiByGroup = _.groupBy(data, function(entry) {
+            return entry.group;
+        });
+
+        // grouped by group and name
+        $.each(apiByGroup, function(index, entries) {
+            currentArticleByGroupAndName[index] = _.groupBy(entries, function(entry) {
+                return entry.name;
+            });
+        });
+
+        console.log(currentArticleByGroupAndName);
     }
 
     // Content-Scroll on Navigation click.
@@ -463,7 +488,7 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
         }
 
         // tabs
-        $('.nav-tabs-examples a').click(function (e) {
+        $('body').on('click', '.nav-tabs-examples a', function (e) {
             e.preventDefault();
             $(this).tab('show');
         });
@@ -602,17 +627,23 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
     }
     setMainVersion();
 
-    $('#versions li.version a').on('click', function(e) {
-        e.preventDefault();
+    $('body').on('click', '#versions li.version a', function (e) {
+            e.preventDefault();
 
-        setMainVersion($(this).html());
+            setMainVersion($(this).html());
     });
+    // $('#versions li.version a').on('click', function(e) {
+    //     e.preventDefault();
+    //
+    //     setMainVersion($(this).html());
+    // });
 
     // compare all article with their predecessor
     $('#compareAllWithPredecessor').on('click', changeAllVersionCompareTo);
 
     // change version of an article
-    $('article .versions li.version a').on('click', changeVersionCompareTo);
+    // $('article .versions li.version a').on('click', changeVersionCompareTo);
+    $('body').on('click', 'article .versions li.version a', changeVersionCompareTo);
 
     // compare url-parameter
     $.urlParam = function(name) {
@@ -691,7 +722,7 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
         if ( ! compareVersion && version == selectedVersion)
             return;
 
-        if (compareVersion && articleVersions[group][name][0] === selectedVersion || version === selectedVersion) {
+        if (compareVersion && currentArticleVersions[group][name][0] === selectedVersion || version === selectedVersion) {
             // the version of the entry is set to the highest version (reset)
             resetArticle(group, name, version);
         } else {
@@ -699,7 +730,7 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
 
             var sourceEntry = {};
             var compareEntry = {};
-            $.each(apiByGroupAndName[group][name], function(index, entry) {
+            $.each(currentArticleByGroupAndName[group][name], function(index, entry) {
                 if (entry.version === version)
                     sourceEntry = entry;
                 if (entry.version === selectedVersion)
@@ -709,7 +740,7 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
             var fields = {
                 article: sourceEntry,
                 compare: compareEntry,
-                versions: articleVersions[group][name]
+                versions: currentArticleVersions[group][name]
             };
 
             // add unique id
@@ -858,13 +889,13 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
      */
     function renderArticle(group, name, version) {
         var entry = {};
-        $.each(apiByGroupAndName[group][name], function(index, currentEntry) {
+        $.each(currentArticleByGroupAndName[group][name], function(index, currentEntry) {
             if (currentEntry.version === version)
                 entry = currentEntry;
         });
         var fields = {
             article: entry,
-            versions: articleVersions[group][name]
+            versions: currentArticleVersions[group][name]
         };
 
         addArticleSettings(fields, entry);
