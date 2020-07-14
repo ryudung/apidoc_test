@@ -430,24 +430,39 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
             });
         });
 
-        console.log(currentArticleByGroupAndName);
     }
+
+    // ajax request 동기로 변경.
+    $.ajaxSetup({
+        async: false
+    });
+
+    // currentGroupData[for cache]
+    var currentGroupData = {};
 
     // Content-Scroll on Navigation click.
     $('.sidenav').find('a').on('click', function(e) {
         e.preventDefault();
         var $currentTarget = $(e.currentTarget);
         var groupName = $currentTarget.parent().data('group');
+        var id = $currentTarget.attr('href');
 
-        $.getJSON(groupName + '/'+ 'api_data.json', function (result) {
+        if($.isEmptyObject(currentGroupData) || currentGroupData.key !== groupName){
+            $.getJSON(groupName + '/'+ 'api_data.json', function (result) {
 
-            renderSectionsAndArticles(result);
+                currentGroupData = {
+                    key: groupName,
+                    data : result
+                };
 
-            var id = $currentTarget.attr('href');
-            if ($(id).length > 0)
-                $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 400);
-        });
+                renderSectionsAndArticles(result);
+            });
+        }
 
+        if ($(id).length > 0)
+            $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 400);
+
+        window.location.hash = id;
     });
 
     /**
@@ -952,4 +967,24 @@ function init($, _, locale, Handlebars, apiProject, apiData, prettyPrint, sample
         });
         return results;
     }
+
+    function directHashEnterProcess(){
+        //hash tag로 진입시 처리
+        var hashTag = window.location.hash;
+
+        if ($('section').length === 0 && !!hashTag) {
+            var hash = hashTag.substring(1);
+
+            var $target = $('.' + hash + '-init');
+
+            var keyword = $target.prop(title);
+
+            $('#scrollingNav .sidenav-search input.search')
+                .val(keyword).focus();
+
+            $target.trigger('click');
+        }
+    }
+
+    directHashEnterProcess();
 }
